@@ -1,6 +1,5 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { use } from "react";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -19,6 +18,7 @@ const registerUser = asyncHandler( async (req ,res) => {
     const { username, email, fullName, password } = req.body;
     console.log("email: ", email);
     console.log("password: ", password);
+    console.log("req.body: ", req.body);// For understanding the structure of req.body
 
     // if(fullName === "") {
     //     throw new ApiError(400, "Full name is required");
@@ -41,8 +41,15 @@ const registerUser = asyncHandler( async (req ,res) => {
         throw new ApiError(409, "User already exists with this username or email");
     }
 
+    console.log("req.files: ", req.files);// For understanding the structure of req.files
+    
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    
+    let coverImageLocalPath;// In this way it will not give an error(TypeError: Cannot read properties of undefined (reading '0')) if coverImage is not provided
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
 
     if(!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required");
