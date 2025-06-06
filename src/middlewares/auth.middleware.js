@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { User } from "../models/user.models.js";
+import { User } from "../models/user.model.js";
 
 // Here res is not used, so we can omit it from the parameters and use an underscore to indicate that it's intentionally unused.   --->Production code practise
 export const verifyJWT = asyncHandler(async (req, _, next) => {
