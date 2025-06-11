@@ -26,11 +26,22 @@ const userSchema = new mongoose.Schema(
             index: true
         },
         avatar: {
-            type: String, // Cloudinary url
-            required: true,
+            url: {
+                type: String, // Cloudinary url
+                required: true,
+            },
+            public_id: {
+                type: String, // Cloudinary public_id
+                required: true,
+            }
         },
         coverImage: {
-            type: String, // Cloudinary url
+            url: {
+                type: String, // Cloudinary url
+            },
+            public_id: {
+                type: String, // Cloudinary public_id
+            }
         },
         watchHistory: [
             {

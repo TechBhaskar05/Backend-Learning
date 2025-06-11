@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -59,7 +59,7 @@ const registerUser = asyncHandler( async (req ,res) => {
         throw new ApiError(409, "User already exists with this username or email");
     }
 
-    // console.log("req.files: ", req.files);// For understanding the structure of req.files
+    console.log("req.files: ", req.files);// For understanding the structure of req.files
     
     const avatarLocalPath = req.files?.avatar[0]?.path;
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
@@ -82,8 +82,14 @@ const registerUser = asyncHandler( async (req ,res) => {
 
     const user = await User.create({
         fullName,
-        avatar: avatar.url,
-        coverImage: coverImage?.url || "",
+        avatar: {
+            url: avatar.url,
+            public_id: avatar.public_id // public_id is used to delete the image from cloudinary
+        },
+        coverImage: coverImage?.url? {
+            url: coverImage.url,
+            public_id: coverImage.public_id // public_id is used to delete the image from cloudinary
+        } : undefined, // If coverImage is not provided, it will be undefined
         email: email.toLowerCase(),
         password,
         username: username.toLowerCase()
@@ -107,7 +113,8 @@ const loginUser = asyncHandler( async (req, res) => {
     // password check
     // access token and refresh token generation
     // send cookies
-
+    console.log("req.body: ", req.body);// For understanding the structure of req.body
+    
     const { username, email, password } = req.body;
 
     if(!username && !email) {
@@ -261,6 +268,8 @@ const getCurrentUser = asyncHandler( async (req, res) => {
 })
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
+    console.log(req.body); // For understanding the structure of req.body
+    
     const {fullName, email} = req.body
 
     if(!fullName || fullName.trim() === "" || !email || email.trim() === "") {
@@ -292,23 +301,39 @@ const updateUserAvatar = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Avatar file is missing");
     }
 
+    const currentUser = await User.findById(req.user?._id);
+    if(!currentUser) {
+        throw new ApiError(404, "User not found");
+    }
+
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if(!avatar.url) {
         throw new ApiError(400, "Error while uploading avatar");
     }
 
+    // Delete old avatar from cloudinary
+    if(currentUser.avatar?.public_id) {
+        console.log("Attempting to delete Cloudinary file with ID:", currentUser.avatar.public_id);
+        try {
+            await deleteFromCloudinary(currentUser.avatar.public_id);
+        } catch (error) {
+            throw new ApiError(500, "Error deleting old avatar from Cloudinary");
+        }
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set: { avatar: avatar.url }
+            $set: { avatar: {
+                url: avatar.url,
+                public_id: avatar.public_id // public_id is used to delete the image from cloudinary
+            } }
         },
         {
             new: true
         }
     ).select("-password")
-
-    // TODO: Delete old avatar from cloudinary
 
     return res
     .status(200)
@@ -322,16 +347,32 @@ const updateUserCoverImage = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Cover image file is missing");
     }
 
+    const currentUser = await User.findById(req.user?._id);
+    if(!currentUser) {
+        throw new ApiError(404, "User not found");
+    }
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if(!coverImage.url) {
         throw new ApiError(400, "Error while uploading cover image");
     }
 
+    if(currentUser.coverImage?.public_id) {
+        try {
+            await deleteFromCloudinary(currentUser.coverImage.public_id);
+        } catch (error) {
+            throw new ApiError(500, "Error deleting old cover image from Cloudinary");
+        }
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set: { coverImage: coverImage.url }
+            $set: { coverImage: {
+                url: coverImage.url,
+                public_id: coverImage.public_id // public_id is used to delete the image from cloudinary
+            } }
         },
         {
             new: true
