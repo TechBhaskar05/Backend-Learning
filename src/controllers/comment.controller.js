@@ -25,9 +25,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
         {
             $match: { video: new mongoose.Types.ObjectId(videoId) }
         },
-        {
-            $unwind: "$owner"
-        },
+        // {
+        //     $unwind: "$owner"
+        // },
         {
             $sort: { createdAt: -1 } // Sort by creation date, newest first
         },

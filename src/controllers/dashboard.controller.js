@@ -18,6 +18,8 @@ const getChannelStats = asyncHandler(async (req, res) => {
     // const totalLikes = await Like.countDocuments({ likeableId: channelId, onModel: "Video" });
     // const totalSubscribers = await Subscription.countDocuments({ channel: channelId });
 
+    const videoIds = await Video.find({ owner: channelId }).distinct('_id');
+
     const [totalVideos, totalViews, totalSubscribers, totalLikes] = await Promise.all([
         Video.countDocuments({owner: channelId}),
         Video.aggregate([
@@ -25,7 +27,10 @@ const getChannelStats = asyncHandler(async (req, res) => {
             { $group: { _id: null, total: { $sum: "$views" } } }
         ]).then(result => result[0]?.total || 0),
         Subscription.countDocuments({ channel: channelId }),
-        Like.countDocuments({ video: { $in: await Video.find({owner: channelId}).distinct("_id") } })
+        Like.countDocuments({
+            likeableId: { $in: videoIds },
+            onModel: "Video"
+        })
     ]);
 
     return res
