@@ -9,3 +9,5 @@ router.route("/c/:channelId")
 
 router.route("/u/:subscriberId")
     .get(verifyJWT, getSubscribedChannels);
+
+export default router;
