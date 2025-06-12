@@ -22,14 +22,12 @@ router.route("/:videoId")
     .get(getVideoById)
     .patch(
         verifyJWT,
-        uploadVideo.fields([
-            { name: "thumbnail", maxCount: 1 }
-        ]),
+        uploadVideo.single("thumbnail"), // Only thumbnail is updated, video remains unchanged
         updateVideo
     )
     .delete(verifyJWT, deleteVideo);
 
-router.route("/toggle/:videoId")
+router.route("/toggle/publish/:videoId")
     .patch(verifyJWT, togglePublishStatus);
 
 export default router;
